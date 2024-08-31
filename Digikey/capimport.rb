@@ -9,7 +9,20 @@ require 'cap_tools'
 require 'table'
 require 'filter'
 
-def parse_dk_capacitor(item)
+def required_option(name, options={})
+    v = options[name]
+    if v.nil?
+        print "The argument should include required option #{name}"
+        exit 1
+    end
+    return v
+end
+
+def parse_dk_capacitor(item, options = {})
+
+    pin_dia = required_option(:pin_dia, options) 
+    pin_qty = required_option(:pin_qty, options) 
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     # Extract data
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -29,7 +42,8 @@ def parse_dk_capacitor(item)
     dk_package = item.get_field( "Package / Case")
     dk_datasheet = item.get_field("Datasheet") 
     dk_image = item.get_field("Image") 
-    
+    dk_polarization = item.get_field("Polarization")
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     # Convert data
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -56,11 +70,24 @@ def parse_dk_capacitor(item)
         :package => dk_package,
         :datasheet => dk_datasheet,
         :image => dk_image,
-        :component_type => "Capacitor"
+        :component_type => "Capacitor",
+        :polarization => dk_polarization,
+        :pin_dia => pin_dia,
+        :pin_qty => pin_qty
     }
 end
 
-def parse_cemicon_capacitor(item)
+def parse_cemicon_capacitor(item, options = {})
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+    # Arguments
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+    lead_spacing = required_option(:lead_spacing, options)
+    package = required_option(:package, options)
+    polarization = required_option(:polarization, options)
+    pin_dia = required_option(:pin_dia, options) 
+    pin_qty = required_option(:pin_qty, options) 
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     # Extract data
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -74,14 +101,15 @@ def parse_cemicon_capacitor(item)
     ck_tolerance = item.get_field("Capacitance Tolerance Code")
     ck_min_temperature = item.get_field( "Min. Category Temperature[deg.C]")
     ck_max_temperature = item.get_field( "Max. Category Temperature[deg.C]")
-    ck_lead_spacing = item.get_field("Lead Spacing")
-    ck_size = item.get_field("Size / Dimension")
-    ck_height = item.get_field("Height - Seated (Max)")
+    ck_lead_spacing = lead_spacing
+    ck_size = item.get_field("Dimensions ⌀D[mm]")
+    ck_height = item.get_field("Dimensions L[mm]")
     ck_mount_type = item.get_field("Mounting Type")
-    ck_package = item.get_field( "Package / Case")
+    ck_package = package
     ck_datasheet = item.get_field("Catalog PDF(en)") 
     ck_image = ""
-    
+    ck_polarization = polarization
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     # Convert data
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -114,7 +142,10 @@ def parse_cemicon_capacitor(item)
         :package => dk_package,
         :datasheet => dk_datasheet,
         :image => dk_image,
-        :component_type => "Capacitor"
+        :component_type => "Capacitor",
+        :polarization => ck_polarization,
+        :pin_dia => pin_dia,
+        :pin_qty => pin_qty
     }
 end
 
@@ -128,9 +159,7 @@ def parse_capacitor(item, options = {})
     # Arguments
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-    type = options[:type]
-    cell_format = options[:cell_format] || "IPC_CAPAER_2"
-    pin_qty = options[:m_pin_qty] || 2
+    type = required_option(:type, options)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     # Parse
@@ -138,9 +167,9 @@ def parse_capacitor(item, options = {})
 
     case type
     when @FILE_TYPE_DIGIKEY
-        obj = parse_dk_capacitor(item)
+        obj = parse_dk_capacitor(item, options)
     when @FILE_TYPE_CHEMICON
-        obj = parse_cemicon_capacitor(item)
+        obj = parse_cemicon_capacitor(item, options)
     else
         raise("\nUnsupported file type '#{type}', expected: #{@FILE_TYPES}\n")
     end
@@ -156,10 +185,7 @@ def convert_capacitor(obj, options)
     # Arguments
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-    type = options[:type]
     cell_format = options[:cell_format] 
-    pin_qty = options[:pin_qty] || 2
-    pin_dia = options[:pin_dia] || 2
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     # Convert
@@ -183,11 +209,13 @@ def convert_capacitor(obj, options)
     datasheet = obj[:datasheet]
     image = obj[:image]
     component_type = obj[:component_type]
+    polarization = obj[:polarization]
+    pin_qty = obj[:pin_qty]
+    pin_dia = obj[:pin_dia]
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     # Convert the value to Mentor's format
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-
 
     m_capacitance = CapTools.captiance_f_to_s(capacitance)
     m_capacitance_desc = CapTools.description_captiance_f_to_s(capacitance).upcase
@@ -197,8 +225,8 @@ def convert_capacitor(obj, options)
     m_size_height = MentorIpcCapacitorCell.make_body_size(size*100, height*100)
     m_lead_spacing = MentorIpcCapacitorCell.make_size(lead_spacing*100, 4)
     m_lead_size = MentorIpcCapacitorCell.make_size(pin_dia*100, 3)
-    m_pin_qty = pin_qty
     m_package = package.gsub(" ","")
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     # Convert all to the footprint string
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -209,12 +237,12 @@ def convert_capacitor(obj, options)
         # -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
         # CAPAETR(Pin_qty)_(mfr)_(mfr_sern)_(CC###) or (mfr_prtn) optional suffix PD{pin_data} pin data
         # -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
-        m_footprint = %Q(CAPAETR#{m_pin_qty}_#{dk_mfr}_#{dk_series}_PD#{m_lead_size})
+        m_footprint = %Q(CAPAETR#{pin_qty}_#{dk_mfr}_#{dk_series}_PD#{m_lead_size})
     when @IPC_CAPAER_2
         # -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
         # CAPAETR(Pin_qty)_(pitch)P(body_widthXbody_height) optional suffix PD{pin_data} pin data
         # -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
-        m_footprint = %Q(CAPAETR#{m_pin_qty}_#{m_lead_spacing}P_#{m_size_height}_PD#{m_lead_size})
+        m_footprint = %Q(CAPAETR#{pin_qty}_#{m_lead_spacing}P_#{m_size_height}_PD#{m_lead_size})
     else
         raise "\nUnknown cell name format '#{cell_format}' expected: #{@CELL_FORMATS}\n"
     end
@@ -265,9 +293,9 @@ def convert_capacitor(obj, options)
     }
 end
 
-# ===================================================
-
-# ===================================================
+# ==============================================================================
+# The parsing is convertinh the CSV file to the hash table
+# ==============================================================================
 
 def parse_table(table, options={})
     result = Table.new
@@ -282,25 +310,36 @@ def parse_table(table, options={})
     end
     return result
 end
+
+# ==============================================================================
+# Converting will produce the DxDatabook data format
+# ==============================================================================
+
+# On the inout it has table with short names
+# :captiance, :voltage
+# On the output onverted values
+# "Captiance", "RatedValue"
 def convert_table(table, options={})
-    only = options[:only]
-    except = options[:except]
-    invert = options[:invert] || false
     result = Table.new
     first_row = true
     table.rows().each do |row|
         obj2 = convert_capacitor(row, options)
-        filt = check_filter(obj2, only, except)
+        # Now there is long names
         if first_row
-            result.add_header(obj2.map{|k,v| k})
+            keys = obj2.map{|k,v| k}
+            result.add_header(keys)
             first_row = false
         end
-        if !invert == filt
-            result.add_line(obj2)
-        end
+        new_cells = obj2.map{|k,v| obj2[k]}
+        result.add_line(new_cells)
     end
     return result
 end
+
+# ==============================================================================
+# Parse the arguments of application
+# ==============================================================================
+
 def parse_arguments()
     options = {}
     options[:only] = []
@@ -327,6 +366,9 @@ def parse_arguments()
         end
         opts.on("-d", "--pin-dia N", Float, "Pin diameter") do |n|
             options[:pin_dia] = n
+        end
+        opts.on("", "--polarization N", Float, "The part polarization diameter") do |n|
+            options[:polarization] = n
         end
         opts.on("", "--skip N", Integer, "Skip N lines") do |n|
             options[:skip] = n

@@ -98,14 +98,30 @@ class Table
   end
   #
   def add_header(cells)
-    cells = cells.cells if cells.is_a?(Row)
-    @header = Row.new(self, cells.map{|v| v.to_sym})
+    new_cells = []
+    if cells.is_a?(Row)
+      @header = cells
+    elsif cells.is_a?(Array)
+      @header = Row.new(self, cells.map{|v| v.to_sym})
+    elsif cells.is_a?(Hash)
+      @header = Row.new(self, cells.map{|k,v| k.to_sym})
+    else 
+      raise "Unexpected argument #{cells}"
+    end
   end
   #
   def add_line(cells={})
     new_cells = []
-    @header.cells().each do |k|
-      new_cells << cells[k]
+    if cells.is_a?(Row)
+      new_cells = cells.cells()
+    elsif cells.is_a?(Array)
+      new_cells << cells
+    elsif cells.is_a?(Hash)
+      @header.cells().each do |k|
+        new_cells << cells[k]
+      end
+    else 
+      raise "Unexpected argument #{cells}"
     end
     @rows << Row.new(self,  new_cells)
   end
