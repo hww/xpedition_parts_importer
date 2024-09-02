@@ -3,7 +3,7 @@ $LOAD_PATH << '.'
 require 'csv' 
 
 def format_float(number)
-  sprintf('%.19f', number).sub(/0+$/, '').sub(/\.$/, '.0')
+  sprintf('%.15f', number).sub(/0+$/, '').sub(/\.$/, '.0')
 end
 
 class Row 
@@ -21,14 +21,17 @@ class Row
       return get_field(idx)
     elsif idx.is_a?(String)
       return get_field(idx)
-    else
+    elsif idx.is_a?(Integer)
       return @cells[idx]
+    else
+      raise "Expected integer found #{idx}"
     end
   end
   def index(name)
     idx = @cells.index(name.to_sym)
     if idx == nil
-      raise("\ncan't find field with name '#{name}' in the #{@header}\n")
+      puts ("Can't find column with name '#{name}' in the #{@header}")
+      exit 1
     end
     return idx
   end
@@ -115,7 +118,7 @@ class Table
     if cells.is_a?(Row)
       new_cells = cells.cells()
     elsif cells.is_a?(Array)
-      new_cells << cells
+      new_cells = cells
     elsif cells.is_a?(Hash)
       @header.cells().each do |k|
         new_cells << cells[k]
@@ -133,6 +136,37 @@ class Table
         a << r.to_csv(separator)
     end
     return a.join("\n") + "\n"
+  end
+  def to_uniq_csv(separator = ",", uniq_column)
+    a = []
+    a << @header.to_csv(separator)
+    uniq_index = @header.index(uniq_column)
+    unless uniq_index
+      puts "Field '#{uniq_column}' is not found in list #{@header.to_csv(",")}"
+      exit 1
+    end
+    uniq_table = {}
+    rows.each do |r|
+      id = r.cells[uniq_index]
+      unless uniq_table[id]
+        a << r.to_csv(separator)
+        uniq_table[id] = true
+      end
+    end
+    return a.join("\n") + "\n"
+  end
+  def column_to_csv(separator = ",", column)
+    a = []
+    idx = @header.index(column)
+    if idx.nil?
+      puts "Field '#{column}' is not found in list #{@header.to_csv(",")}"
+      exit 1
+    end
+    rows.each do |r|
+      a << r.cells[idx]
+    end
+    a = a.uniq.sort
+    return a.join(separator) + "\n"
   end
   def filter(options={})
     only = options[:only] || []

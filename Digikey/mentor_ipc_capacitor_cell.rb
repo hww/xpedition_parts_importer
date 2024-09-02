@@ -2,14 +2,20 @@ class MentorIpcCapacitorCell
     # ==========================================================================
     # Naming Convention IPC table
     # ==========================================================================
-    def self.make_size(size, digits)
-        s = size.to_i.to_s
-        if s.size > digits
-            raise "the value #{size} not fit to #{digits} digits"
-        elsif s.size == digits
-            return s
+    def self.make_size(size, digits = 0)
+        size = size.to_i
+        str = size.to_s
+        if digits>0        
+            if str.size > digits
+                puts "the value #{size} not fit to #{digits} digits"
+                exit 1
+            elsif str.size == digits
+                return str
+            end
+            return  ("0" * (digits-str.size)) + str
+        else
+            return  str
         end
-        return  ("0" * (digits-s.size)) + s
     end
     # N.B. chip parts >9.99mm in either x or y will have 4 digit 
     # body size dimensions for both x and y using X as a separator 

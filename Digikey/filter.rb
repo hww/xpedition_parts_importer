@@ -65,9 +65,9 @@ class Filter
   def predicate_nil(value)
     case @operation
     when :eq
-      return @value == "nil"
+      return value.nil? && @value=="nil"
     when :neq
-      return @value != "nil"
+      return !value.nil? && @value=="nil"
     when :qte
       return false
     when :qt
@@ -118,4 +118,30 @@ class Filter
     end
   end
 
+  def self.usage_text()
+    return  <<-EOF
+    There are three filters available `only`,`except`,`invert`. Each of them could be used 
+    multiple times and they can be used all together.
+    
+    --only   the record will be used when all this filters will return true
+    --except the record will be ignored when any this filters will return true
+    --invert invert the the decision based on --only and --except
+
+    Each filter antry contains three parts: field function value
+
+    For example: --only "size==8"
+
+    There arew available functions:
+      ==, =   Equal
+      !=      Not Equal
+      >=      Greater or Equal
+      >       Greater 
+      >=      Less or Equal
+      >       Less
+      LIKE    Contains substring 
+    
+    To see all fields run the method with argument --fields
+
+    EOF
+  end
 end

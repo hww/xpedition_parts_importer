@@ -76,6 +76,17 @@ module DigikeyCapTools
     arr = str.gsub(" ","").gsub("°C","").split("~")
     return arr[0].to_i,arr[1].to_i
   end
+  def self.land_size(str)
+    # 0.169" L x 0.169" W (4.30mm x 4.30mm)
+    if str == nil || str == ""
+        raise("can't parse dimention #{str}")
+    end
+    starts = str.index("(") + 1
+    ends = str.index(")") -1
+    subs = str[starts..ends]
+    return subs.gsub("mm", "").split(" x ").map{|v| v.to_f}
+  end
+  
 end
 
 

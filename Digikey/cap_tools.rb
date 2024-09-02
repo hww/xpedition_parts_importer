@@ -73,13 +73,13 @@ module CapTools
 
     def CapTools.tolerance_to_s(min, max)
         if (min.abs()==max.abs())
-            return "±#{max}%"
+            return "#{max}%"
         else
             return "#{min}% ~+#{max}%"
         end
     end
 
-    def CapTools.voltage_to_s(value)
+    def CapTools.rated_voltage_to_s(value)
         if value.to_s.end_with?(".0")
             return "#{value.to_i}V"
         else
@@ -89,5 +89,29 @@ module CapTools
 
     def CapTools.temperature_to_s(min, max)
         return "#{min.abs}C#{max.abs}"
+    end
+
+    def CapTools.package_to_s(s)
+        case s
+        when "Radial, Can"
+            return "Radial Can"
+        when "Radial"
+            return "Radial"   
+        when "Radial, Can - SMD"          
+            return "Radial Can"   
+        else
+            raise "Unknown package '#{s}'"
+        end
+    end
+
+    def CapTools.mount_type_to_s(s)
+        case s
+        when "Through Hole"
+            return "TH"
+        when "Surface Mount"
+            return "SMD"
+        else
+            raise "Unknown mount type '#{s}'"
+        end
     end
 end
